@@ -1,0 +1,216 @@
+#+TITLE: Draft Syrup Specification
+
+* Status of This Document
+
+This is a draft specification, created by the OCapN pre-standardization group.
+This is subject to change with the work of the group, if you're interested in
+being part of that work, please join.
+
+* Overview
+
+Syrup is a lightweight and easy-to-implement data serialization format. The
+serialization is canonicalized and thus the same set of data is always
+serializes to the same set of octets (8 bit values). The Syrup is a
+serialization format for the [[https://preserves.gitlab.io/preserves/][Preserves]] data model.
+
+Syrup is a /binary/ serialization format; data is not encoded within text, but
+as the raw underlying data, preventing common escaping bugs. It also provides an
+easy way to canonicalized as unordered data types are sorted by the octet which
+is simple to implement.
+
+** Syrup at a glance
+The comprehensive specification is below, however here's a birds-eye view of all
+the types supported in Syrup:
+
+#+BEGIN_QUOTE
+Booleans:           t or f
+Floats:             F<ieee-single-float>          (big endian)
+Doubles:            D<ieee-double-float>          (big endian)
+Positive integers:  <int>+
+Negative integers:  <int>-
+Binary data:        3:cat
+Strings:            6"björn                       (utf-8 encoded)
+Symbols:            6'update                      (utf-8 encoded)
+Dictionaries:       {<key1><val1><key2><val2>}    (sorted by key)
+Sequences:          [<item1><item2><item3>]
+Records:            <<label><val1><val2><val3>>   (the outer <> actually appear)
+Sets:               #<item1><item2><item3>$       (sorted)
+#+END_QUOTE
+
+The =<>= are usually representing a value, however for records, they are
+actually surrounded by the =<>= characters.
+
+* Specification
+
+Syrup uses a few characters to indicate types and encode data length. These
+characters are encoded as ASCII characters and written as individual octets (8
+bit values).
+
+** Booleans
+Booleans are represented as =t= for true, or =f= for false.
+
+** Float
+All floating point values are represented in big endian and are serialized with
+an =F= followed by 4 octets representing the value in [[https://ieeexplore.ieee.org/document/4610935][IEEE representation]] for
+single floating point values.
+
+** Double
+All double numeric values are represented in big endian and are serialized with
+a =D= followed by 8 octets representing the value in  [[https://ieeexplore.ieee.org/document/4610935][IEEE representation]] for
+single floating point values.
+
+** Positive Integers
+Integers are serialized as a base 10 string format beginning with the most
+significant digit until the least significant digit. The integer is then
+followed by a =+= character.
+
+The integer 0 (zero) is considered positive.
+
+*** Example
+
+The number 0 would be encoded as =0+= and the number 72 would be
+encoded as =72+=.
+
+** Negative Integers
+Integers are serialized as a base 10 string format beginning with the most
+significant digit until the least significant digit. The integer is then
+followed by a =-= character.
+
+*** Example
+
+The number -5 (negative five) would be serialized as =5-=.
+
+** Binary Data
+Binary Data is a sequence of octets. These octets could represent any kind
+of data, such as images, sound, etc.
+
+Binary Data is serialized with the size of the data (number of octets), followed
+by a =:= and then the octets representing the underlying data. The size is a
+base 10 string format beginning with the most significant digit until the least
+significant digit.
+
+The size is a base 10 string format beginning with the most significant digit
+until the least significant digit.
+
+*** Examples
+Due to the nature of binary data being a arbitrary sequence of octets and not
+encoding text, it is hard to show examples within the specification (a text
+document). However since examples are important we've tried to show as best we
+can an example:
+
+- an ASCII string with the content =cat= would be formatted as =3:cat= (note:
+  strings are better formatted with the String data type).
+- A 32mb jpeg would be =33554432:<jpeg-data-goes-here...>=
+
+** Strings
+Strings are textual unicode information. All characters in the string are
+encoded as UTF-8.
+
+Strings are serialized with the size (number of octets used to represent the
+string), followed by a ="= and then the octets representing the string.
+
+The size is a base 10 string format beginning with the most significant digit
+until the least significant digit.
+
+*** Examples
+Here are some examples of strings and how they'd be serialized:
+
+- "bear" would be as =4"bear=
+- "björn" would be as =6"björn= (=ö= is represented in UTF-8 as U+00F6
+  which is two octets).
+- "熊" would be =3"熊= (=熊= is represented in UTf-8 as U+718A which
+  is three octets).
+
+** Symbols
+Symbols are a string-like value which represents an identifier.
+
+Symbols are serialized with the size (number of octets used to represent the
+symbol), followed by a ='= and then the octets representing the symbol.
+
+The size is a base 10 string format beginning with the most significant digit
+until the least significant digit.
+
+*** Examples
+
+- A symbol with the text =fetch= would be encoded as =5'fetch=
+- A symbol with the text =hämta= would be encoded as =6'hämta= (=ä=
+  is represented in UTF-8 as U+00E4 which is two octets).
+
+** Dictionaries
+Dictionaries are unordered maps between keys and values, this allows easy lookup
+of a key to retrieve its value pair.
+
+Dictionaries begin with a ={= character and then serialize each key value pair
+one after another, and finally ending in a =}=. The key value pairs are
+serialized according to their types with no seperator between.
+
+In order to ensure the same dictionary always serializes to the same sequence of
+octets (its canonicalized form), we need to serialize the key value pairs in a
+specific order. The dictionary is sorted on the key which has been serialized
+into syrup according to its type.
+
+*** Example
+The following JSON:
+#+BEGIN_SRC json
+  {
+      "name": "Alice",
+      "age": 30,
+      "isAlive": true
+  }
+#+END_SRC
+
+would serialize to:
+#+BEGIN_SRC syrup
+{3:age30+4:name5:Alice7:isAlivet}
+#+END_SRC
+
+Note that the order of the keys occur in the following order: =age=,
+=name= and =isAlive= due to sorting.
+
+** Sequences
+The sequence should begin with a =[= and be followed by each item in the
+sequence, these items are serialized according to their respective types. The
+list ends with a =]=
+
+*** Example
+The following JSON:
+#+BEGIN_SRC json
+  [1,2,3]
+#+END_SRC
+
+Would be serialized in syrup as:
+#+BEGIN_SRC syrup
+[1+2+3+]
+#+END_SRC
+
+** Records
+A record begins with a =<=, then followed by the record label which is
+serialized according to its type, finally it has each value in the fields one
+after the other according to the serialization of the respective type.
+
+*** Example
+A record with the label being the symbol =person= followed by three fields with
+the values =Alice= (string), =30= (positive integer), and =true= (boolean) would
+be serialized as:
+
+#+BEGIN_SRC syrup
+  <6:person5:Alice30+t>
+#+END_SRC
+
+** Sets
+The record begins with a =#=, then followed by each item in the set
+without any seperator between the items, and then finally ending with
+a =$=.
+
+Sets are considered to be unordered data structures in preserves, however like
+dictionaries, they need to be sorted to ensure the same set produces the same
+sequence of octets. This is done by first serializing to Syrup each value in the
+set and then sorting it on its serialized value.
+
+*** Example
+The set with the members =3=, =2=, and =1= (all positive integers) would be
+serialized as:
+
+#+BEGIN_SRC syrup
+#1+2+3+$
+#+END_SRC
