@@ -2,21 +2,23 @@
 
 * Status of This Document
 
-This is a draft specification, created by the OCapN pre-standardization group.
-This is subject to change with the work of the group, if you're interested in
-being part of that work, please join.
+This is a draft specification, created by the [[https://github.com/ocapn/ocapn][OCapN]] pre-standardization group.
+This draft is subject to change with the work of the group; if you're interested
+in being part of that work, please join!
 
 * Overview
 
-Syrup is a lightweight and easy-to-implement data serialization format. The
-serialization is canonicalized and thus the same set of data is always
-serializes to the same set of octets (8 bit values). The Syrup is a
-serialization format for the [[https://preserves.gitlab.io/preserves/][Preserves]] data model.
+Syrup is a lightweight and easy-to-implement data serialization format.
+A serialized Syrup structure is canonicalized; the same data thus always
+serializes to the same set of octets (8 bit values).
 
 Syrup is a /binary/ serialization format; data is not encoded within text, but
-as the raw underlying data, preventing common escaping bugs. It also provides an
+as the raw underlying data, preventing common escaping bugs. Syrup also provides an
 easy way to canonicalized as unordered data types are sorted by the octet which
 is simple to implement.
+
+Syrup is a serialization of the [[https://preserves.gitlab.io/preserves/][Preserves]] data model.
+However, knowledge of Preserves is not required to use Syrup.
 
 ** Syrup at a glance
 The comprehensive specification is below, however here's a birds-eye view of all
