@@ -22,7 +22,7 @@ is simple to implement.
 The comprehensive specification is below, however here's a birds-eye view of all
 the types supported in Syrup:
 
-#+BEGIN_QUOTE
+#+BEGIN_SRC text
 Booleans:           t or f
 Floats:             F<ieee-single-float>          (big endian)
 Doubles:            D<ieee-double-float>          (big endian)
@@ -35,7 +35,7 @@ Dictionaries:       {<key1><val1><key2><val2>}    (sorted by key)
 Sequences:          [<item1><item2><item3>]
 Records:            <<label><val1><val2><val3>>   (the outer <> actually appear)
 Sets:               #<item1><item2><item3>$       (sorted)
-#+END_QUOTE
+#+END_SRC
 
 The =<>= are usually representing a value, however for records, they are
 actually surrounded by the =<>= characters.
