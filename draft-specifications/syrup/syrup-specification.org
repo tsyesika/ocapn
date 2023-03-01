@@ -139,8 +139,8 @@ until the least significant digit.
   is represented in UTF-8 as U+00E4 which is two octets).
 
 ** Dictionaries
-Dictionaries are unordered maps between keys and values, this allows easy lookup
-of a key to retrieve its value pair.
+Dictionaries are unordered maps between keys and values representing
+structures where keys can be easily looked up to retrieve values.
 
 Dictionaries begin with a ={= character and then serialize each key value pair
 one after another, and finally ending in a =}=. The key value pairs are
@@ -148,8 +148,12 @@ serialized according to their types with no seperator between.
 
 In order to ensure the same dictionary always serializes to the same sequence of
 octets (its canonicalized form), we need to serialize the key value pairs in a
-specific order. The dictionary is sorted on the key which has been serialized
-into syrup according to its type.
+specific order.
+
+Dictionaries are sorted very simply.
+All keys are first /fully serialized/ and then sorted by the encoded-bytes
+mechanism.
+See [[*Bytewise sorting]] for details.
 
 *** Example
 The following JSON:
@@ -216,3 +220,48 @@ serialized as:
 #+BEGIN_SRC syrup
 #1+2+3+$
 #+END_SRC
+
+* Bytewise sorting
+
+This algorithm describes 
+
+** Pseudocode
+
+Beginning with fully encoded bytestrings
+ 
+ - Define =bstr1_len= as the 
+ - Begin looping with =pos= set to =0=.
+ - 
+
+#+BEGIN_SRC scheme
+(define (bytes<? bstr1 bstr2)
+  (define bstr1-len
+    (bytevector-length bstr1))
+  (define bstr2-len
+    (bytevector-length bstr2))
+  (define (loop pos)
+    (cond
+     ;; we've reached the end of both and they're the same bytestring
+     ;; but this isn't <=?
+     [(and (eqv? bstr1-len pos)
+           (eqv? bstr2-len pos))
+      #f]
+     ;; we've reached the end of bstr1 but not bstr2, so yes it's less
+     [(eqv? bstr1-len pos)
+      #t]
+     ;; we've reached the end of bstr2 but not bstr1, so no
+     [(eqv? bstr2-len pos)
+      #f]
+     ;; ok, time to compare bytes
+     [else
+      (let ([bstr1-byte (bytevector-u8-ref bstr1 pos)]
+            [bstr2-byte (bytevector-u8-ref bstr2 pos)])
+        (if (eqv? bstr1-byte bstr2-byte)
+            ;; they're the same, so loop
+            (loop (1+ pos))
+            ;; otherwise, just compare nubmers
+            (< bstr1-byte bstr2-byte)))]))
+  ;; Start looping at 0
+  (loop 0))
+#+END_SRC
+
