@@ -270,15 +270,17 @@ function is_less_than(s1, s2) {
 
         // We are not at the end of either sequence so compare the next octets.
         // Extract the octet at the position index from each sequence
-        octet1 = octet_at(sequence: s1, position: i);
-        octet2 = octet_at(sequence: s2, position: i);
+        octet1 = octet_at(sequence: s1, position: i)
+        octet2 = octet_at(sequence: s2, position: i)
 
         if (octet1 < octet2) {
-            return true;
+            return true
         }
         if (octet1 > octet2) {
-            return false;
+            return false
         }
+
+        index = index + 1
     }
 }
 #+END_SRC
