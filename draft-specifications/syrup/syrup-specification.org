@@ -147,13 +147,9 @@ one after another, and finally ending in a =}=. The key value pairs are
 serialized according to their types with no seperator between.
 
 In order to ensure the same dictionary always serializes to the same sequence of
-octets (its canonicalized form), we need to serialize the key value pairs in a
-specific order.
-
-Dictionaries are sorted very simply.
-All keys are first /fully serialized/ and then sorted by the encoded-bytes
-mechanism.
-See [[*Bytewise sorting]] for details.
+octets (its canonicalized form). Sorting is done by first serializing all keys
+to their respective Syrup values and then the dictionary is sorted on those
+values. Refer to the [[*Sorting Algorithm]] section for comparing two values.
 
 *** Example
 The following JSON:
@@ -211,7 +207,8 @@ a =$=.
 Sets are considered to be unordered data structures in preserves, however like
 dictionaries, they need to be sorted to ensure the same set produces the same
 sequence of octets. This is done by first serializing to Syrup each value in the
-set and then sorting it on its serialized value.
+set and then sorting it on its serialized value. Refer to the [[*Sorting Algorithm]]
+section for comparing two values.
 
 *** Example
 The set with the members =3=, =2=, and =1= (all positive integers) would be
@@ -221,47 +218,67 @@ serialized as:
 #1+2+3+$
 #+END_SRC
 
-* Bytewise sorting
+* Sorting Algorithm
+Sorting is used by certain Syrup data types to ensure values are in their
+canonicalised form. Sorting is done by first each value is serialized to their
+respective Syrup binary representations and then sorted from lowest to highest
+in value.
 
-This algorithm describes 
+Below is an algrithm that takes two sequences of octets and says if the first
+sequence of octets is smaller than the second sequence.
 
-** Pseudocode
+** Less than algorithm
+The algorithm to calculate if =s1= (sequence 1) is less than =s2= (sequence 2):
 
-Beginning with fully encoded bytestrings
- 
- - Define =bstr1_len= as the 
- - Begin looping with =pos= set to =0=.
- - 
+1. Calculate the number of octets in =s1= and define that as =s1_length=
+2. Calculate the number of octets in =s2= and define that as =s2_length=
+3. Define an =index= with a value of =0=
+4. Return =false= if (=s1_length= is the same as =index=) and (=s2_length= is the
+   same as =index=).
+5. return =true= if =s1_length= is the same as =index=
+6. Return =false= if =s2_length= is the same as =index=
+7. Define =octet1= with the value of the octet at the index =index= in =s1=
+8. Define =octet2= with the value of the octet at the index =index= in =s2=
+9. Return =true= if =octet1= is numerically lower in value than =octet2=
+8. Return =false= if =octet1= is numerically greater in value than =octet2=
+9. Increment =index= by 1 and jump to step 4.
 
-#+BEGIN_SRC scheme
-(define (bytes<? bstr1 bstr2)
-  (define bstr1-len
-    (bytevector-length bstr1))
-  (define bstr2-len
-    (bytevector-length bstr2))
-  (define (loop pos)
-    (cond
-     ;; we've reached the end of both and they're the same bytestring
-     ;; but this isn't <=?
-     [(and (eqv? bstr1-len pos)
-           (eqv? bstr2-len pos))
-      #f]
-     ;; we've reached the end of bstr1 but not bstr2, so yes it's less
-     [(eqv? bstr1-len pos)
-      #t]
-     ;; we've reached the end of bstr2 but not bstr1, so no
-     [(eqv? bstr2-len pos)
-      #f]
-     ;; ok, time to compare bytes
-     [else
-      (let ([bstr1-byte (bytevector-u8-ref bstr1 pos)]
-            [bstr2-byte (bytevector-u8-ref bstr2 pos)])
-        (if (eqv? bstr1-byte bstr2-byte)
-            ;; they're the same, so loop
-            (loop (1+ pos))
-            ;; otherwise, just compare nubmers
-            (< bstr1-byte bstr2-byte)))]))
-  ;; Start looping at 0
-  (loop 0))
+The same algorithm is also written below in psudocode.
+
+** Psudocode
+#+BEGIN_SRC psudocode
+function is_less_than(s1, s2) {
+    s1_length = amount_of_octets(first);
+    s2_length = amount_of_octets(second);
+
+    define index = 0
+    loop {
+        // If we've reached the end of both byte strings, s1 is not less than s2.
+        if (index == s1_length AND index == s2_length) {
+            return false;
+        }
+
+        // If we've reached the end of s1, but not s2 then s1 is smaller.
+        if (index >= s1_length) {
+            return true
+        }
+
+        // If we've reached the end of s2, but not s1, then s1 is bigger.
+        if (index >= s2_length) {
+            return false;
+        }
+
+        // We are not at the end of either sequence so compare the next octets.
+        // Extract the octet at the position index from each sequence
+        octet1 = octet_at(sequence: s1, position: i);
+        octet2 = octet_at(sequence: s2, position: i);
+
+        if (octet1 < octet2) {
+            return true;
+        }
+        if (octet1 > octet2) {
+            return false;
+        }
+    }
+}
 #+END_SRC
-
