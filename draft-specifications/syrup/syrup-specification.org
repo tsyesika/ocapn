@@ -243,13 +243,13 @@ The algorithm to calculate if =s1= (sequence 1) is less than =s2= (sequence 2):
 8. Return =false= if =octet1= is numerically greater in value than =octet2=
 9. Increment =index= by 1 and jump to step 4.
 
-The same algorithm is also written below in psudocode.
+The same algorithm is also written below in pseudocode.
 
-** Psudocode
+** Pseudocode
 #+BEGIN_SRC psudocode
 function is_less_than(s1, s2) {
-    s1_length = amount_of_octets(first);
-    s2_length = amount_of_octets(second);
+    s1_length = amount_of_octets(s1);
+    s2_length = amount_of_octets(s2);
 
     define index = 0
     loop {
