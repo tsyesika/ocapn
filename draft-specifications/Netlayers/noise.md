@@ -25,6 +25,37 @@ OCapN on top of OCapN. The result of composing this netlayer with another
 netlayer is the other netlayer doesn't need to provide encryption or
 bidirectional peer authentication.
 
+## Topology
+
+The Noise netlayer requires two layers of CapTP, one of which relies on the
+encryption and security properties of the transport netlayer, the other of which
+is the end-to-end encrypted CapTP.
+
+The topology is:
+```
+Noise CapTP (e2ee)
+   |  ^
+   v  |
+Noise Netlayer
+   |  ^
+   v  |
+Transport CapTP
+   |  ^
+   v  |
+Transport Netlayer
+```
+
+The transport CapTP provides us a netlayer agnostic mechanism of communicating
+to another peer. Since the netlayer works by speaking delivering end-to-end
+encrypted messages to another peer, the netlayer mainly uses the notion of an
+[outbox object](#outbox). These objects are exported by by the Transport CapTP
+and messaged over the transport CapTP with the e2ee messages.
+
+All messages from the Noise CapTP are encrypted by the noise netlayer, then
+sent as `op:deliver` messages to the remote peer's outbox object. Similairly,
+incoming messages are delivered to the noise netlayer's outbox object and
+decrypted and then sent to the Noise CapTP.
+
 # Noise
 
 This netlayer uses [Noise Protocol](https://noiseprotocol.org/noise.html)
@@ -78,8 +109,13 @@ which spawned the outbox object. The object takes a single argument which is an
 encrypted OCapN message or Noise handshake message. The message is either a:
 
 - Bytearray: The encrypted data represented as a bytearray.
-- A list of chunked messages with the first element being an integer
-  representing the total length, followed by any number of bytearray chunks.
+- A list of bytearrays: These are chunked messages as specified below.
+
+Chunked messages are any number of chunks of a single OCapN message. The
+syrup serialized OCapN message can be broken into chunks which are encrypted
+and included in a list in order. The initial chunk has the first 4 bytes
+dedicated to the total message length. The first 4 bytes is a unsigned 32-bit
+integer with the byte length of the decrypted syrup serialized OCapN message.
 
 Noise has a maximum message size of 65535. Implementations should be careful to
 ensure messages do not exceed this. If a message is sent that is beyond the
